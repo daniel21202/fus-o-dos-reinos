@@ -1,219 +1,75 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Fusão dos Reinos</title>
-<link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🗡️️ Fusão dos Reinos - Jogo de Estratégia Épico</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <!-- STATUS FIREBASE -->
+    <div id="firebaseStatus" class="firebase-status">🔌 Conectando...</div>
 
-<div class="bg-canvas" id="bgCanvas"></div>
-
-<div id="app">
-
-  <!-- ══════════ SETUP SCREEN ══════════ -->
-  <div id="setupScreen" class="setup-screen">
-    <div class="game-header">
-      <div class="game-title">⚔️ Fusão dos Reinos</div>
-      <div class="game-subtitle">Alianças · Traições · Probabilidade</div>
-    </div>
-
-    <p class="setup-lore">
-      Seis reinos antigos disputam a supremacia. Forme alianças, role dados do destino,
-      acumule pontos — mas saiba que apenas <strong>um</strong> soberano será coroado vencedor.
-    </p>
-
-    <div class="player-count-row">
-      <label>NÚMERO DE JOGADORES</label>
-      <div class="count-btns" id="countBtns">
-        <button class="count-btn" data-n="2">2</button>
-        <button class="count-btn active" data-n="3">3</button>
-        <button class="count-btn" data-n="4">4</button>
-        <button class="count-btn" data-n="5">5</button>
-        <button class="count-btn" data-n="6">6</button>
-      </div>
-    </div>
-
-    <p style="font-family:'Cinzel',serif;font-size:0.72rem;color:var(--silver);letter-spacing:2px;margin-bottom:10px;">ESCOLHA SEUS REINOS</p>
-    <div class="kingdoms-select" id="kingdomsSelect"></div>
-
-    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:6px;">
-      <button class="btn btn-gold" onclick="startGame()">⚔️ INICIAR JOGO</button>
-      <button class="btn btn-ghost" onclick="showTab('rules')">📜 REGRAS</button>
-    </div>
-
-    <div id="rulesSection" style="display:none;margin-top:20px;max-width:560px;margin-left:auto;margin-right:auto;">
-      <div class="rules-box">
-        <h4>🎯 Objetivo</h4>
-        Ser o jogador com <span class="highlight">mais pontos</span> ao final do jogo.
-
-        <h4>🎲 Dados do Destino</h4>
-        <ul>
-          <li>Cada turno o jogador ativo rola um dado de 6 faces.</li>
-          <li><span class="highlight">1–2</span>: Perde 5 pontos (derrota).</li>
-          <li><span class="highlight">3–4</span>: Empate (+0 pontos).</li>
-          <li><span class="highlight">5–6</span>: Ganha 10 pontos (vitória).</li>
-          <li>Com aliança ativa: bônus de +3 pontos ao ganhar.</li>
-        </ul>
-
-        <h4>🤝 Alianças & Traições</h4>
-        <ul>
-          <li>Proponha aliança a qualquer reino — o alvo pode <span class="highlight">aceitar ou recusar</span>.</li>
-          <li>Se aceita, ambos somam pontos juntos por 4 rodadas.</li>
-          <li><span class="highlight">Trair</span> um aliado dá +15 pts mas o aliado perde 10 pts e a aliança acaba.</li>
-          <li>Cada reino pode trair no máximo <span class="highlight">2 vezes</span> por partida.</li>
-        </ul>
-
-        <h4>📊 Estatísticas</h4>
-        <ul>
-          <li>O jogo registra fusões, traições, médias de dados e pontuações.</li>
-          <li>Ao final, gráficos e médias são exibidos na aba Estatísticas.</li>
-        </ul>
-
-        <h4>🏆 Fase Final</h4>
-        <ul>
-          <li>Após a rodada 10, todas as alianças são dissolvidas.</li>
-          <li>3 rodadas de confronto individual — sem aliados, sem traições.</li>
-          <li>A cada rodada final um aviso é exibido na tela.</li>
-          <li>Maior pontuação ao fim é coroado soberano supremo.</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-
-  <!-- ══════════ GAME SCREEN ══════════ -->
-  <div id="gameScreen" style="display:none;">
-    <div class="game-header">
-      <div class="game-title">⚔️ Fusão dos Reinos</div>
-      <div class="game-subtitle">Alianças · Traições · Probabilidade</div>
-    </div>
-
-    <div id="phaseBadge" class="phase-badge phase-alliance">⚔️ FASE DE ALIANÇAS — RODADA <span id="roundNum">1</span> / 10</div>
-
-    <div class="tabs" id="tabBar">
-      <button class="tab-btn active" onclick="showTab('campo')">🗺️ Campo</button>
-      <button class="tab-btn" onclick="showTab('mapa')">🌑 Mapa</button>
-      <button class="tab-btn" onclick="showTab('alianças')">🤝 Alianças</button>
-      <button class="tab-btn" onclick="showTab('stats')">📊 Estatísticas</button>
-      <button class="tab-btn" onclick="showTab('log')">📜 Histórico</button>
-    </div>
-
-    <!-- MAPA PARANORMAL -->
-    <div id="panelMapa" class="panel">
-      <div id="mapaDisplay"></div>
-    </div>
-
-    <!-- CAMPO DE BATALHA -->
-    <div id="panelCampo" class="panel active">
-      <div class="turn-banner">Vez de: <span id="currentTurnName">—</span></div>
-
-      <div class="kingdoms-grid" id="kingdomsGrid"></div>
-
-      <div class="dice-area">
-        <div class="dice-display" id="diceDisplay">🎲</div>
-        <div class="dice-info">
-          <h3>DADO DO DESTINO</h3>
-          <div class="dice-result-text" id="diceResult">Role o dado para ver o seu destino...</div>
+    <div class="container">
+        <!-- HEADER -->
+        <div class="header">
+            <h1 class="title">🗡️️ Fusão dos Reinos</h1>
+            <p class="subtitle">Estratégia • Traição • Vitória Épica</p>
+            <div class="controls">
+                <button id="newGameBtn" class="btn btn-primary">🎲 Nova Partida</button>
+                <button id="autoPlayBtn" class="btn btn-secondary">🤖 Auto-Jogar</button>
+                <button id="shareBtn" class="btn btn-secondary">📱 Compartilhar</button>
+            </div>
         </div>
-      </div>
 
-      <div class="action-row" id="actionRow">
-        <button class="btn btn-gold" id="btnRoll" onclick="rollDice()">🎲 Rolar Dado</button>
-        <button class="btn btn-forest" id="btnAlliance" onclick="openAllianceModal()">🤝 Propor Aliança</button>
-        <button class="btn btn-ember" id="btnBetray" onclick="openBetrayModal()">🗡️ Trair Aliado</button>
-        <button class="btn btn-ghost" id="btnEndTurn" onclick="endTurn()" disabled>⏭️ Próximo Turno</button>
-      </div>
+        <!-- GAME AREA -->
+        <div class="game-area">
+            <div class="phase-display">
+                <div id="phaseTitle" class="phase-title">Preparando Batalha...</div>
+                <div id="roundInfo" class="round-info">3-6 Jogadores • Estratégia Pura</div>
+            </div>
 
-      <div class="log-box" id="mainLog">
-        <div class="log-entry log-warn">⚔️ O destino dos reinos começa agora...</div>
-      </div>
+            <div id="kingdomGrid" class="kingdom-grid"></div>
+
+            <div id="actionButtons" class="action-buttons" style="display: none;">
+                <button id="betrayBtn1" class="betray-btn" disabled>⚔️ Trair Fogo</button>
+                <button id="betrayBtn2" class="betray-btn" disabled>⚔️ Trair Gelo</button>
+                <button id="betrayBtn3" class="betray-btn" disabled>⚔️ Trair Relâmpago</button>
+            </div>
+        </div>
+
+        <!-- SIDEBAR -->
+        <div class="sidebar">
+            <!-- LOG -->
+            <div class="panel">
+                <h3 class="panel-title">📜 Registro de Batalha</h3>
+                <div id="logPanel" class="log-panel">
+                    <div class="log-entry">🎮 Sistema iniciado. Prepare-se para a guerra dos reinos!</div>
+                </div>
+            </div>
+
+            <!-- RANKING FIREBASE -->
+            <div class="panel">
+                <h3 class="panel-title">🏆 Ranking Global</h3>
+                <div id="rankingDisplay" class="ranking-panel">
+                    <div style="text-align:center;padding:40px;color:var(--silver);">🔥 Carregando ranking em tempo real...</div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- ALIANÇAS -->
-    <div id="panelAlianças" class="panel">
-      <div id="allianceDisplay"></div>
+    <!-- VICTORY MODAL -->
+    <div id="victoryModal" class="victory-modal">
+        <div class="victory-content">
+            <div class="victory-icon">👑</div>
+            <h2 class="victory-title" id="victoryKingdom"></h2>
+            <div id="victoryStats" class="victory-stats"></div>
+            <div style="margin-top:30px;">
+                <button id="newGameModalBtn" class="btn btn-primary" style="font-size:1.2rem;padding:15px 40px;">🎲 Nova Partida</button>
+            </div>
+        </div>
     </div>
 
-    <!-- ESTATÍSTICAS -->
-    <div id="panelStats" class="panel">
-      <div id="statsDisplay"></div>
-    </div>
-
-    <!-- HISTÓRICO -->
-    <div id="panelLog" class="panel">
-      <div class="log-box" id="fullLog" style="max-height:400px;"></div>
-    </div>
-  </div>
-
-  <!-- ══════════ WINNER SCREEN ══════════ -->
-  <div id="winnerScreen" style="display:none;" class="panel winner-screen">
-    <span class="winner-crown">👑</span>
-    <div class="winner-name" id="winnerName">—</div>
-    <p style="color:var(--silver);font-size:0.82rem;margin-bottom:16px;" id="winnerStats">—</p>
-    <div id="winnerChart" style="margin-bottom:20px;"></div>
-    <button class="btn btn-gold" onclick="resetGame()">🔄 Novo Jogo</button>
-  </div>
-
-</div>
-
-<!-- ══════════ MODALS ══════════ -->
-<div class="modal-overlay" id="allianceModal">
-  <div class="modal-box">
-    <div class="modal-title">🤝 Propor Aliança</div>
-    <div class="modal-body">
-      Escolha um reino para se aliar. Enquanto a aliança durar, ambos ganham bônus de +3 pts nas vitórias de dados. Mas cuidado — um aliado pode te trair!
-    </div>
-    <div class="form-row">
-      <label class="select-label">REINO ALVO</label>
-      <select id="allianceTarget" class="styled-select"></select>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-forest" onclick="confirmAlliance()">🤝 Aliar</button>
-      <button class="btn btn-ghost" onclick="closeModal('allianceModal')">Cancelar</button>
-    </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="allianceResponseModal">
-  <div class="modal-box">
-    <div class="modal-title" id="allianceResponseTitle">🤝 Proposta de Aliança</div>
-    <div class="modal-body" id="allianceResponseBody">
-      Um reino propõe aliança!
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-forest" id="btnAcceptAlliance" onclick="respondAlliance(true)">✅ Aceitar Aliança</button>
-      <button class="btn btn-ember" id="btnRejectAlliance" onclick="respondAlliance(false)">❌ Recusar</button>
-    </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="betrayModal">
-  <div class="modal-box">
-    <div class="modal-title">🗡️ Trair Aliado</div>
-    <div class="modal-body" id="betrayModalBody">
-      Trair dá <strong>+15 pontos</strong> ao traidor e faz o aliado perder <strong>10 pontos</strong>. Você só pode trair <strong>2 vezes</strong> na partida. Esta ação é irreversível.
-    </div>
-    <div class="form-row">
-      <label class="select-label">ALIADO A TRAIR</label>
-      <select id="betrayTarget" class="styled-select"></select>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-ember" onclick="confirmBetray()">🗡️ Trair</button>
-      <button class="btn btn-ghost" onclick="closeModal('betrayModal')">Cancelar</button>
-    </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="infoModal">
-  <div class="modal-box">
-    <div class="modal-title" id="infoModalTitle">—</div>
-    <div class="modal-body" id="infoModalBody">—</div>
-    <div class="modal-actions">
-      <button class="btn btn-gold" onclick="closeModal('infoModal')">OK</button>
-    </div>
-  </div>
-</div>
-<script src="script.js"></script>
+    <script type="module" src="script.js"></script>
 </body>
 </html>
