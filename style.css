@@ -378,3 +378,123 @@
   .rules-box ul { padding-left: 16px; }
   .rules-box li { margin-bottom: 4px; }
   .highlight { color: var(--gold); font-weight: 700; }
+
+/* ══ PARANORMAL MAP ══ */
+.paranormal-map-wrap {
+  font-family: 'Cinzel', serif;
+}
+
+.map-header-row {
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  margin-bottom: 10px;
+}
+.map-title-text {
+  font-family: 'Cinzel Decorative', serif;
+  font-size: clamp(0.85rem, 2.5vw, 1.1rem);
+  color: var(--gold);
+  letter-spacing: 4px;
+  text-shadow: 0 0 18px rgba(240,192,64,0.5);
+}
+.map-title-rune {
+  font-size: 1.1rem; color: #9060d0; opacity: 0.8;
+}
+
+.map-phase-info {
+  text-align: center;
+  font-family: 'Cinzel', serif;
+  font-size: 0.72rem;
+  color: var(--silver);
+  letter-spacing: 2px;
+  margin-bottom: 14px;
+}
+
+.map-container {
+  width: 100%;
+  border: 1px solid rgba(96,48,160,0.6);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow:
+    0 0 30px rgba(96,48,160,0.25),
+    0 0 60px rgba(96,48,160,0.1),
+    inset 0 0 30px rgba(0,0,0,0.6);
+  background: #050508;
+  margin-bottom: 14px;
+  position: relative;
+}
+
+.paranormal-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* Scanline effect overlay on map */
+.map-container::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.08) 2px,
+    rgba(0,0,0,0.08) 4px
+  );
+  pointer-events: none;
+  border-radius: 8px;
+}
+
+/* Territory hover effect */
+.territory-group {
+  cursor: pointer;
+  transition: opacity 0.3s;
+}
+.territory-group:hover { opacity: 1 !important; }
+
+/* Map Legend */
+.map-legend {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.map-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(10,5,20,0.7);
+  border: 1px solid color-mix(in srgb, var(--lc, #9060d0) 30%, transparent);
+  border-radius: 6px;
+  padding: 7px 10px;
+  font-size: 0.72rem;
+  color: var(--silver);
+  transition: border-color 0.2s;
+}
+.map-legend-item:hover {
+  border-color: color-mix(in srgb, var(--lc, #9060d0) 70%, transparent);
+}
+.map-legend-item.elim { opacity: 0.4; }
+.legend-icon { font-size: 1.1rem; }
+.legend-name {
+  font-family: 'Cinzel', serif;
+  font-size: 0.65rem;
+  color: var(--parchment);
+  flex: 1;
+}
+.legend-pts {
+  font-family: 'Cinzel', serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.legend-tag {
+  font-size: 0.65rem;
+  font-family: 'Cinzel', serif;
+}
+.map-legend-note {
+  text-align: center;
+  font-size: 0.68rem;
+  color: var(--silver);
+  letter-spacing: 1px;
+  opacity: 0.7;
+}

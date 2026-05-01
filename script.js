@@ -93,16 +93,17 @@ function showTab(tab) {
   }
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-  const panelMap = { campo:'panelCampo', alianças:'panelAlianças', stats:'panelStats', log:'panelLog' };
+  const panelMap = { campo:'panelCampo', mapa:'panelMapa', alianças:'panelAlianças', stats:'panelStats', log:'panelLog' };
   const panelId = panelMap[tab];
   if (!panelId) return;
   document.getElementById(panelId)?.classList.add('active');
   const tabs = document.querySelectorAll('.tab-btn');
-  const tabNames = ['campo','alianças','stats','log'];
+  const tabNames = ['campo','mapa','alianças','stats','log'];
   const ti = tabNames.indexOf(tab);
   if (ti >= 0) tabs[ti]?.classList.add('active');
   if (tab === 'stats') renderStats();
   if (tab === 'alianças') renderAlliances();
+  if (tab === 'mapa') renderParanormalMap();
 }
 
 // ── GAME STATE ──────────────────────────
@@ -649,3 +650,254 @@ document.querySelectorAll('.modal-overlay').forEach(m => {
     }
   });
 });
+// ══════════════════════════════════════════
+//  MAPA PARANORMAL — ORDEM DOS REINOS
+// ══════════════════════════════════════════
+
+const KINGDOM_TERRITORIES = {
+  fogo:   { cx: 300, cy: 145, rx: 88, ry: 68, label: { x: 300, y: 148 }, color: '#e05a20', glow: '#ff6a00' },
+  gelo:   { cx: 520, cy: 160, rx: 82, ry: 65, label: { x: 520, y: 163 }, color: '#60b8ff', glow: '#a8d8ff' },
+  terra:  { cx: 185, cy: 290, rx: 90, ry: 72, label: { x: 185, y: 293 }, color: '#4aaa44', glow: '#7fff6a' },
+  oceano: { cx: 445, cy: 305, rx: 95, ry: 70, label: { x: 445, y: 308 }, color: '#1a6ab0', glow: '#4aafff' },
+  trovao: { cx: 640, cy: 295, rx: 82, ry: 68, label: { x: 640, y: 298 }, color: '#c0b000', glow: '#ffe600' },
+  sombra: { cx: 310, cy: 435, rx: 100, ry: 75, label: { x: 310, y: 438 }, color: '#9060d0', glow: '#c090ff' },
+};
+
+// Rune symbols for each kingdom
+const KINGDOM_RUNES = {
+  fogo:   'ᚱ', gelo: 'ᛁ', terra: 'ᛟ',
+  oceano: 'ᛚ', trovao: 'ᛏ', sombra: 'ᚾ',
+};
+
+function renderParanormalMap() {
+  const el = document.getElementById('mapaDisplay');
+  if (!el) return;
+
+  const kingdoms = game ? game.kingdoms : KINGDOM_DEFS.filter(k => chosenKingdoms.includes(k.id));
+  const currentId = game ? currentKingdom().id : null;
+
+  // Build alliance connection lines
+  let allianceLines = '';
+  if (game) {
+    const seen = new Set();
+    game.kingdoms.forEach(k => {
+      if (k.ally && !seen.has(k.id + k.ally) && KINGDOM_TERRITORIES[k.id] && KINGDOM_TERRITORIES[k.ally]) {
+        seen.add(k.id + k.ally);
+        seen.add(k.ally + k.id);
+        const a = KINGDOM_TERRITORIES[k.id];
+        const b = KINGDOM_TERRITORIES[k.ally];
+        allianceLines += `
+          <line x1="${a.cx}" y1="${a.cy}" x2="${b.cx}" y2="${b.cy}"
+            stroke="#6dffaa" stroke-width="2.5" stroke-dasharray="8 5" opacity="0.7">
+            <animate attributeName="stroke-dashoffset" values="0;26" dur="1.2s" repeatCount="indefinite"/>
+          </line>
+          <circle cx="${(a.cx+b.cx)/2}" cy="${(a.cy+b.cy)/2}" r="5" fill="#6dffaa" opacity="0.9">
+            <animate attributeName="opacity" values="0.4;1;0.4" dur="1.5s" repeatCount="indefinite"/>
+          </circle>`;
+      }
+    });
+  }
+
+  // Build territory shapes
+  let territories = '';
+  kingdoms.forEach(k => {
+    const t = KINGDOM_TERRITORIES[k.id];
+    if (!t) return;
+    const isCurrent = k.id === currentId;
+    const isElim = game && game.kingdoms.find(gk => gk.id === k.id)?.eliminated;
+    const pts = game ? game.kingdoms.find(gk => gk.id === k.id)?.points || 0 : 100;
+    const pct = Math.min(pts / 200, 1);
+    const rune = KINGDOM_RUNES[k.id] || '?';
+    const opacity = isElim ? 0.2 : 0.85;
+
+    territories += `
+      <g class="territory-group" data-id="${k.id}" opacity="${opacity}">
+        <!-- Outer glow ring -->
+        <ellipse cx="${t.cx}" cy="${t.cy}" rx="${t.rx + 14}" ry="${t.ry + 10}"
+          fill="none" stroke="${t.glow}" stroke-width="${isCurrent ? 3 : 1.2}" opacity="${isCurrent ? 0.9 : 0.35}">
+          ${isCurrent ? `<animate attributeName="stroke-width" values="2;4;2" dur="1.6s" repeatCount="indefinite"/>` : ''}
+          ${isCurrent ? `<animate attributeName="opacity" values="0.5;1;0.5" dur="1.6s" repeatCount="indefinite"/>` : ''}
+        </ellipse>
+
+        <!-- Territory body -->
+        <ellipse cx="${t.cx}" cy="${t.cy}" rx="${t.rx}" ry="${t.ry}"
+          fill="url(#grad_${k.id})" stroke="${t.color}" stroke-width="1.5" opacity="0.92"/>
+
+        <!-- Noise texture overlay -->
+        <ellipse cx="${t.cx}" cy="${t.cy}" rx="${t.rx}" ry="${t.ry}"
+          fill="url(#noise)" opacity="0.18"/>
+
+        <!-- Inner rune symbol -->
+        <text x="${t.cx}" y="${t.cy - 14}" text-anchor="middle" dominant-baseline="middle"
+          font-size="26" fill="${t.glow}" opacity="0.4" font-family="serif"
+          filter="url(#runeBlur)">${rune}</text>
+        <text x="${t.cx}" y="${t.cy - 14}" text-anchor="middle" dominant-baseline="middle"
+          font-size="26" fill="${t.glow}" opacity="0.95" font-family="serif">${rune}</text>
+
+        <!-- Kingdom icon -->
+        <text x="${t.cx}" y="${t.cy + 8}" text-anchor="middle" dominant-baseline="middle"
+          font-size="22">${k.icon}</text>
+
+        <!-- Kingdom name -->
+        <text x="${t.label.x}" y="${t.label.y + 28}" text-anchor="middle"
+          font-family="'Cinzel', serif" font-size="9" fill="${t.color}"
+          letter-spacing="1.5" font-weight="700" opacity="0.95">${k.name.toUpperCase()}</text>
+
+        <!-- HP bar inside territory -->
+        ${game ? `
+        <rect x="${t.cx - 32}" y="${t.cy + 40}" width="64" height="5" rx="2.5"
+          fill="rgba(0,0,0,0.5)" stroke="${t.color}" stroke-width="0.5" opacity="0.8"/>
+        <rect x="${t.cx - 32}" y="${t.cy + 40}" width="${64 * pct}" height="5" rx="2.5"
+          fill="${t.glow}" opacity="0.85"/>
+        <text x="${t.cx}" y="${t.cy + 57}" text-anchor="middle"
+          font-family="'Cinzel', serif" font-size="8" fill="${t.color}" opacity="0.9">${pts} pts</text>` : ''}
+
+        <!-- Eliminated X -->
+        ${isElim ? `
+        <text x="${t.cx}" y="${t.cy}" text-anchor="middle" dominant-baseline="middle"
+          font-size="48" fill="#ff3333" opacity="0.8" font-weight="900">✕</text>` : ''}
+      </g>`;
+  });
+
+  // Fog particles (static SVG circles for atmosphere)
+  let fog = '';
+  const fogPositions = [
+    [130,200],[560,240],[380,500],[700,380],[250,380],[490,440],[350,260],[620,160],[180,450]
+  ];
+  fogPositions.forEach(([fx, fy], i) => {
+    fog += `<circle cx="${fx}" cy="${fy}" r="${25 + i*8}" fill="url(#fogGrad)" opacity="${0.08 + i%3*0.04}">
+      <animate attributeName="r" values="${25+i*8};${35+i*8};${25+i*8}" dur="${4+i}s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="${0.06+i%3*0.03};${0.13+i%3*0.03};${0.06+i%3*0.03}" dur="${5+i*0.7}s" repeatCount="indefinite"/>
+    </circle>`;
+  });
+
+  // Map legend
+  const legendKingdoms = kingdoms.filter(k => KINGDOM_TERRITORIES[k.id]);
+
+  el.innerHTML = `
+    <div class="paranormal-map-wrap">
+      <div class="map-header-row">
+        <span class="map-title-rune">᛬</span>
+        <span class="map-title-text">MAPA DOS REINOS</span>
+        <span class="map-title-rune">᛬</span>
+      </div>
+      ${game ? `<div class="map-phase-info">
+        ${game.phase === 'final' ? '🔥 FASE FINAL — SEM ALIANÇAS' : `⚔️ Rodada ${game.round} · Vez de: ${currentKingdom().icon} ${currentKingdom().name}`}
+      </div>` : '<div class="map-phase-info">🌑 Selecione reinos e inicie o jogo</div>'}
+
+      <div class="map-container">
+        <svg viewBox="0 0 800 570" xmlns="http://www.w3.org/2000/svg" class="paranormal-svg">
+          <defs>
+            <!-- Radial gradients per kingdom -->
+            ${kingdoms.map(k => {
+              const t = KINGDOM_TERRITORIES[k.id];
+              if (!t) return '';
+              return `<radialGradient id="grad_${k.id}" cx="50%" cy="40%" r="65%">
+                <stop offset="0%" stop-color="${t.glow}" stop-opacity="0.22"/>
+                <stop offset="60%" stop-color="${t.color}" stop-opacity="0.12"/>
+                <stop offset="100%" stop-color="${t.color}" stop-opacity="0.04"/>
+              </radialGradient>`;
+            }).join('')}
+
+            <!-- Fog gradient -->
+            <radialGradient id="fogGrad" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#6030a0" stop-opacity="1"/>
+              <stop offset="100%" stop-color="#6030a0" stop-opacity="0"/>
+            </radialGradient>
+
+            <!-- Background gradient -->
+            <radialGradient id="bgGrad" cx="40%" cy="35%" r="70%">
+              <stop offset="0%" stop-color="#130a22"/>
+              <stop offset="100%" stop-color="#050508"/>
+            </radialGradient>
+
+            <!-- Rune blur filter -->
+            <filter id="runeBlur" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="4"/>
+            </filter>
+
+            <!-- Glow filter -->
+            <filter id="glowFilter" x="-40%" y="-40%" width="180%" height="180%">
+              <feGaussianBlur stdDeviation="3" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+
+            <!-- Noise texture -->
+            <filter id="noise">
+              <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/>
+              <feColorMatrix type="saturate" values="0"/>
+              <feBlend in="SourceGraphic" mode="multiply"/>
+            </filter>
+          </defs>
+
+          <!-- Background -->
+          <rect width="800" height="570" fill="url(#bgGrad)"/>
+
+          <!-- Grid lines (subtle arcane grid) -->
+          ${Array.from({length:9}, (_,i) => `<line x1="${i*100}" y1="0" x2="${i*100}" y2="570" stroke="#3a1a5a" stroke-width="0.4" opacity="0.5"/>`).join('')}
+          ${Array.from({length:7}, (_,i) => `<line x1="0" y1="${i*95}" x2="800" y2="${i*95}" stroke="#3a1a5a" stroke-width="0.4" opacity="0.5"/>`).join('')}
+
+          <!-- Fog atmosphere -->
+          ${fog}
+
+          <!-- Corner rune decorations -->
+          <text x="24" y="40" font-size="22" fill="#6030a0" opacity="0.45" font-family="serif">ᚦ</text>
+          <text x="762" y="40" font-size="22" fill="#6030a0" opacity="0.45" font-family="serif">ᚨ</text>
+          <text x="24" y="555" font-size="22" fill="#6030a0" opacity="0.45" font-family="serif">ᛗ</text>
+          <text x="762" y="555" font-size="22" fill="#6030a0" opacity="0.45" font-family="serif">ᚹ</text>
+
+          <!-- Central arcane circle -->
+          <circle cx="400" cy="290" r="180" fill="none" stroke="#3a1a5a" stroke-width="1" stroke-dasharray="4 8" opacity="0.5"/>
+          <circle cx="400" cy="290" r="220" fill="none" stroke="#2a1040" stroke-width="0.7" opacity="0.6"/>
+          <circle cx="400" cy="290" r="8" fill="none" stroke="#9060d0" stroke-width="1.2" opacity="0.4">
+            <animate attributeName="r" values="6;10;6" dur="3s" repeatCount="indefinite"/>
+            <animate attributeName="opacity" values="0.3;0.7;0.3" dur="3s" repeatCount="indefinite"/>
+          </circle>
+
+          <!-- Arcane pentagram lines -->
+          <polygon points="400,110 558,225 498,395 302,395 242,225"
+            fill="none" stroke="#4a1a7a" stroke-width="0.8" opacity="0.3"/>
+
+          <!-- Alliance connection lines -->
+          ${allianceLines}
+
+          <!-- Territory regions -->
+          ${territories}
+
+          <!-- Scanline vignette effect -->
+          <rect width="800" height="570" fill="url(#bgGrad)" opacity="0.25"/>
+          <ellipse cx="400" cy="285" rx="420" ry="310" fill="none"
+            stroke="rgba(60,0,80,0.5)" stroke-width="60" filter="url(#glowFilter)"/>
+
+          <!-- Map border frame -->
+          <rect x="6" y="6" width="788" height="558" rx="4"
+            fill="none" stroke="#6030a0" stroke-width="1.5" opacity="0.6"/>
+          <rect x="12" y="12" width="776" height="546" rx="3"
+            fill="none" stroke="#3a1a5a" stroke-width="0.7" opacity="0.8"/>
+        </svg>
+      </div>
+
+      <!-- Map Legend -->
+      <div class="map-legend">
+        ${legendKingdoms.map(k => {
+          const gk = game && game.kingdoms.find(gk => gk.id === k.id);
+          const pts = gk ? gk.points : '—';
+          const isElim = gk?.eliminated;
+          const hasAlly = gk?.ally;
+          const allyKingdom = hasAlly ? KINGDOM_DEFS.find(d => d.id === gk.ally) : null;
+          return `<div class="map-legend-item ${isElim ? 'elim' : ''}" style="--lc:${KINGDOM_TERRITORIES[k.id]?.color || '#fff'}">
+            <span class="legend-icon">${k.icon}</span>
+            <span class="legend-name">${k.name}</span>
+            ${game ? `<span class="legend-pts" style="color:${KINGDOM_TERRITORIES[k.id]?.glow}">${pts}</span>` : ''}
+            ${isElim ? '<span class="legend-tag" style="color:#ff5555">💀 Eliminado</span>' : ''}
+            ${hasAlly && !isElim ? `<span class="legend-tag" style="color:#6dffaa">🤝 ${allyKingdom?.icon||'?'}</span>` : ''}
+          </div>`;
+        }).join('')}
+      </div>
+
+      ${allianceLines ? `<div class="map-legend-note">
+        <span style="color:#6dffaa;">━ ━</span> linha tracejada = aliança ativa
+      </div>` : ''}
+    </div>
+  `;
+}
