@@ -504,6 +504,171 @@
   color: var(--silver);
   letter-spacing: 1px;
   opacity: 0.7;
+}
+
+/* ══ KINGDOM INFO CARDS ══ */
+.kinfo-section-title {
+  display: flex; align-items: center; justify-content: center;
+  gap: 10px; margin: 18px 0 10px;
+}
+
+.kinfo-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+@media(min-width: 560px) {
+  .kinfo-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+.kinfo-card {
+  background: rgba(8,6,20,0.92);
+  border: 1px solid color-mix(in srgb, var(--kc, #9060d0) 40%, transparent);
+  border-radius: 12px;
+  padding: 14px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.3s;
+}
+.kinfo-card::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 20% 0%, color-mix(in srgb, var(--kc,#9060d0) 15%, transparent) 0%, transparent 70%);
+  pointer-events: none;
+}
+.kinfo-card.kinfo-current {
+  border-color: var(--kc);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--kc,#9060d0) 30%, transparent);
+}
+.kinfo-card.kinfo-elim {
+  opacity: 0.45;
+  filter: grayscale(0.5);
+}
+
+/* Header */
+.kinfo-header {
+  display: flex; align-items: flex-start; gap: 10px;
+  margin-bottom: 10px;
+}
+.kinfo-icon { font-size: 1.8rem; flex-shrink: 0; line-height: 1; }
+.kinfo-title-col { flex: 1; min-width: 0; }
+.kinfo-name {
+  font-family: 'Cinzel', serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  margin-bottom: 5px;
+}
+.kinfo-badges { display: flex; flex-wrap: wrap; gap: 4px; }
+.kinfo-badge {
+  font-family: 'Cinzel', serif;
+  font-size: 0.58rem;
+  padding: 2px 7px;
+  border-radius: 20px;
+  border: 1px solid;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+.kinfo-pts-big {
+  font-family: 'Cinzel', serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  line-height: 1.1;
+  text-align: center;
+}
+
+/* HP bar */
+.kinfo-hp-wrap {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 12px;
+}
+.kinfo-hp-track {
+  flex: 1; height: 6px; border-radius: 3px;
+  background: rgba(255,255,255,0.08); overflow: hidden;
+}
+.kinfo-hp-fill {
+  height: 100%; border-radius: 3px;
+  transition: width 0.6s ease;
+}
+.kinfo-hp-label {
+  font-family: 'Cinzel', serif;
+  font-size: 0.62rem;
+  color: var(--silver);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Body */
+.kinfo-body {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+/* Pie column */
+.kinfo-pie-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+.kinfo-pie-wrap {
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--kc,#9060d0) 25%, transparent);
+}
+.kinfo-pie-label {
+  font-family: 'Cinzel', serif;
+  font-size: 0.62rem;
+  letter-spacing: 1px;
+  text-align: center;
+}
+.kinfo-pie-legend {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 5px;
+  font-size: 0.6rem;
+  color: var(--silver);
+  align-items: center;
+  font-family: 'Lato', sans-serif;
+}
+.pie-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+/* Stats column */
+.kinfo-stats-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.kinfo-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.kinfo-stat-row:last-child { border-bottom: none; }
+.kinfo-stat-label {
+  font-family: 'Lato', sans-serif;
+  font-size: 0.66rem;
+  color: var(--silver);
+  white-space: nowrap;
+}
+.kinfo-stat-val {
+  font-family: 'Cinzel', serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--parchment);
+  white-space: nowrap;
 }</style>
 <body>
 
@@ -1460,6 +1625,158 @@ function renderParanormalMap() {
     });
   }
 
+  // ── PIE CHART SVG builder (returns an <svg> string for HTML, not inline SVG map)
+  function buildPieChartSVG(wins, losses, ties, color, glow, size=90) {
+    const total = wins + losses + ties;
+    const R = size / 2;
+    const cx = R, cy = R;
+    const cWin='#6dffaa', cLoss='#ff6d6d', cTie='#f0c040';
+
+    function polarToCart(angleDeg, r) {
+      const rad = (angleDeg - 90) * Math.PI / 180;
+      return [cx + r * Math.cos(rad), cy + r * Math.sin(rad)];
+    }
+    function slicePath(startDeg, endDeg, col) {
+      if (endDeg - startDeg >= 360) endDeg = startDeg + 359.99;
+      if (endDeg - startDeg <= 0) return '';
+      const [sx, sy] = polarToCart(startDeg, R - 2);
+      const [ex, ey] = polarToCart(endDeg, R - 2);
+      const large = (endDeg - startDeg) > 180 ? 1 : 0;
+      return `<path d="M${cx},${cy} L${sx.toFixed(2)},${sy.toFixed(2)} A${R-2},${R-2} 0 ${large},1 ${ex.toFixed(2)},${ey.toFixed(2)} Z" fill="${col}" opacity="0.93"/>`;
+    }
+
+    let slices = '';
+    if (total === 0) {
+      slices = `<circle cx="${cx}" cy="${cy}" r="${R-2}" fill="rgba(0,0,0,0.3)" stroke="${color}" stroke-width="2" stroke-dasharray="4 4"/>
+        <text x="${cx}" y="${cy+1}" text-anchor="middle" dominant-baseline="middle" font-family="Cinzel,serif" font-size="10" fill="${color}" opacity="0.5">—</text>`;
+    } else {
+      const wD = (wins/total)*360, lD = (losses/total)*360, tD = (ties/total)*360;
+      slices += slicePath(0, wD, cWin);
+      slices += slicePath(wD, wD+lD, cLoss);
+      slices += slicePath(wD+lD, wD+lD+tD, cTie);
+      // center hole for donut effect
+      slices += `<circle cx="${cx}" cy="${cy}" r="${R*0.38}" fill="#07070f"/>`;
+      // win rate % in center
+      const wr = Math.round((wins/total)*100);
+      slices += `<text x="${cx}" y="${cy+1}" text-anchor="middle" dominant-baseline="middle" font-family="Cinzel,serif" font-size="${size > 80 ? 13 : 10}" font-weight="700" fill="${glow}">${wr}%</text>`;
+    }
+
+    return `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="${cx}" cy="${cy}" r="${R-1}" fill="rgba(5,5,15,0.7)"/>
+      ${slices}
+      <circle cx="${cx}" cy="${cy}" r="${R-1}" fill="none" stroke="${color}" stroke-width="1.8" opacity="0.8"/>
+    </svg>`;
+  }
+
+  // ── KINGDOM INFO CARDS (below map, mobile-friendly)
+  function buildKingdomCards(kingdoms) {
+    if (!game) return '';
+    const avg = arr => arr.length ? (arr.reduce((a,b)=>a+b,0)/arr.length).toFixed(1) : '—';
+
+    return `<div class="kinfo-grid">
+      ${kingdoms.map(k => {
+        const t = KINGDOM_TERRITORIES[k.id];
+        if (!t) return '';
+        const gk = game.kingdoms.find(gk => gk.id === k.id);
+        if (!gk) return '';
+        const wins = gk.stats.wins, losses = gk.stats.losses, ties = gk.stats.ties;
+        const total = wins + losses + ties;
+        const winRate = total ? Math.round((wins/total)*100) : 0;
+        const allyK = gk.ally ? KINGDOM_DEFS.find(d => d.id === gk.ally) : null;
+        const pct = Math.min(gk.points / gk.maxPoints, 1);
+        const isElim = gk.eliminated;
+        const isCurrent = game ? currentKingdom().id === k.id : false;
+        const avgRoll = avg(gk.stats.rolls);
+
+        return `<div class="kinfo-card ${isElim ? 'kinfo-elim' : ''} ${isCurrent ? 'kinfo-current' : ''}"
+          style="--kc:${t.color};--kg:${t.glow}">
+
+          <!-- Header -->
+          <div class="kinfo-header">
+            <span class="kinfo-icon">${k.icon}</span>
+            <div class="kinfo-title-col">
+              <div class="kinfo-name" style="color:${t.glow}">${k.name}</div>
+              <div class="kinfo-badges">
+                ${isCurrent ? '<span class="kinfo-badge" style="background:rgba(240,192,64,0.2);color:#f0c040;border-color:#f0c04066">⚔️ VEZ ATUAL</span>' : ''}
+                ${isElim ? '<span class="kinfo-badge" style="background:rgba(255,50,50,0.2);color:#ff6d6d;border-color:#ff6d6d44">💀 ELIMINADO</span>' : ''}
+                ${allyK && !isElim ? `<span class="kinfo-badge" style="background:rgba(26,74,42,0.4);color:#6dffaa;border-color:#6dffaa44">🤝 ${allyK.icon} ${allyK.name}</span>` : ''}
+                ${!allyK && !isElim && gk.betrayals > 0 ? `<span class="kinfo-badge" style="background:rgba(139,26,26,0.3);color:#ff9944;border-color:#ff994444">🗡️ ${gk.betrayals}/${gk.maxBetrayals} traições</span>` : ''}
+              </div>
+            </div>
+            <div class="kinfo-pts-big" style="color:${t.glow}">${gk.points}<span style="font-size:0.55rem;color:var(--silver);display:block;text-align:center;letter-spacing:2px;">PTS</span></div>
+          </div>
+
+          <!-- HP bar -->
+          <div class="kinfo-hp-wrap">
+            <div class="kinfo-hp-track">
+              <div class="kinfo-hp-fill" style="width:${(pct*100).toFixed(1)}%;background:linear-gradient(90deg,${t.color}88,${t.glow})"></div>
+            </div>
+            <span class="kinfo-hp-label">${gk.points} / ${gk.maxPoints}</span>
+          </div>
+
+          <!-- Body: pie + stats -->
+          <div class="kinfo-body">
+
+            <!-- Pie chart -->
+            <div class="kinfo-pie-col">
+              <div class="kinfo-pie-wrap">
+                ${buildPieChartSVG(wins, losses, ties, t.color, t.glow, 90)}
+              </div>
+              <div class="kinfo-pie-label" style="color:${t.color}">
+                ${total > 0 ? `${winRate}% vitórias` : 'sem rolagens'}
+              </div>
+              <div class="kinfo-pie-legend">
+                <span class="pie-dot" style="background:#6dffaa"></span><span>${wins} vitórias</span>
+                <span class="pie-dot" style="background:#ff6d6d"></span><span>${losses} derrotas</span>
+                <span class="pie-dot" style="background:#f0c040"></span><span>${ties} empates</span>
+              </div>
+            </div>
+
+            <!-- Stats grid -->
+            <div class="kinfo-stats-col">
+              <div class="kinfo-stat-row">
+                <span class="kinfo-stat-label">🎲 Média dado</span>
+                <span class="kinfo-stat-val" style="color:${t.glow}">${avgRoll}</span>
+              </div>
+              <div class="kinfo-stat-row">
+                <span class="kinfo-stat-label">📊 Rolagens</span>
+                <span class="kinfo-stat-val">${total}</span>
+              </div>
+              <div class="kinfo-stat-row">
+                <span class="kinfo-stat-label">✅ Vitórias</span>
+                <span class="kinfo-stat-val" style="color:#6dffaa">${wins}</span>
+              </div>
+              <div class="kinfo-stat-row">
+                <span class="kinfo-stat-label">❌ Derrotas</span>
+                <span class="kinfo-stat-val" style="color:#ff6d6d">${losses}</span>
+              </div>
+              <div class="kinfo-stat-row">
+                <span class="kinfo-stat-label">🟡 Empates</span>
+                <span class="kinfo-stat-val" style="color:#f0c040">${ties}</span>
+              </div>
+              <div class="kinfo-stat-row">
+                <span class="kinfo-stat-label">🔗 Fusões</span>
+                <span class="kinfo-stat-val" style="color:var(--gold)">${Math.floor(gk.stats.fusions/2)}</span>
+              </div>
+              <div class="kinfo-stat-row">
+                <span class="kinfo-stat-label">🗡️ Traiu</span>
+                <span class="kinfo-stat-val" style="color:#ff9944">${gk.stats.betrayalsDone}</span>
+              </div>
+              <div class="kinfo-stat-row">
+                <span class="kinfo-stat-label">💔 Foi traído</span>
+                <span class="kinfo-stat-val" style="color:var(--silver)">${gk.stats.betrayalsReceived}x</span>
+              </div>
+              ${allyK ? `<div class="kinfo-stat-row">
+                <span class="kinfo-stat-label">🤝 Aliança</span>
+                <span class="kinfo-stat-val" style="color:#6dffaa">${gk.allyRounds}rd restante${gk.allyRounds!==1?'s':''}</span>
+              </div>` : ''}
+            </div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }
+
   // Build territory shapes
   let territories = '';
   kingdoms.forEach(k => {
@@ -1660,6 +1977,15 @@ function renderParanormalMap() {
       ${allianceLines ? `<div class="map-legend-note">
         <span style="color:#6dffaa;">━ ━</span> linha tracejada = aliança ativa
       </div>` : ''}
+
+      <!-- KINGDOM INFO CARDS WITH PIE CHARTS -->
+      ${game ? `
+      <div class="kinfo-section-title">
+        <span class="map-title-rune">᛬</span>
+        <span style="font-family:'Cinzel Decorative',serif;font-size:0.75rem;color:var(--gold);letter-spacing:3px;">FICHAS DOS REINOS</span>
+        <span class="map-title-rune">᛬</span>
+      </div>
+      ${buildKingdomCards(kingdoms)}` : ''}
     </div>
   `;
 }
