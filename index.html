@@ -919,25 +919,35 @@ function renderKingdoms() {
 function updateTurnUI() {
   const cur = currentKingdom();
   document.getElementById('currentTurnName').textContent = `${cur.icon} ${cur.name}`;
-  document.getElementById('roundNum').textContent = game.round;
 
-  // Phase badge
   const badge = document.getElementById('phaseBadge');
+
   if (game.phase === 'alliance') {
     badge.className = 'phase-badge phase-alliance';
-    badge.innerHTML = `⚔️ FASE DE ALIANÇAS — RODADA <span id="roundNum">${game.round}</span> / ${game.maxRounds}`;
+    // ✅ SEM span interno — texto puro
+    badge.textContent = `⚔️ FASE DE ALIANÇAS — RODADA ${game.round} / ${game.maxRounds}`;
+
   } else if (game.phase === 'final') {
     badge.className = 'phase-badge phase-final';
-    const isLast = game.finalRound >= game.finalRounds;
-    badge.innerHTML = `👑 FASE FINAL ${isLast ? '🔥' : '⚔️'} — RODADA ${game.finalRound} / ${game.finalRounds}`;
+    const isLast = game.finalRound === game.finalRounds;
+    badge.textContent = `👑 FASE FINAL ${isLast ? '🔥' : '⚔️'} — RODADA ${game.finalRound} / ${game.finalRounds}`;
+
+  } else if (game.phase === 'ended') {
+    badge.className = 'phase-badge phase-final';
+    badge.textContent = `🏆 JOGO ENCERRADO`;
   }
 
+  // ✅ Atualiza o roundNum APENAS se o elemento ainda existir no DOM original
+  const roundNumEl = document.getElementById('roundNum');
+  if (roundNumEl) roundNumEl.textContent = game.round;
+
   const hasPending = !!game.pendingAlliance;
-  document.getElementById('btnRoll').disabled = game.rolled || hasPending;
-  document.getElementById('btnEndTurn').disabled = !game.rolled || hasPending;
-  // Alliance and betray disabled in final phase or while pending
-  document.getElementById('btnAlliance').disabled = game.rolled || hasPending || game.phase !== 'alliance' || !!cur.ally;
-  document.getElementById('btnBetray').disabled = game.rolled || hasPending || game.phase !== 'alliance' || !cur.ally || cur.betrayals >= cur.maxBetrayals;
+  const gameEnded = game.phase === 'ended';
+
+  document.getElementById('btnRoll').disabled    = game.rolled || hasPending || gameEnded;
+  document.getElementById('btnEndTurn').disabled = !game.rolled || hasPending || gameEnded;
+  document.getElementById('btnAlliance').disabled = game.rolled || hasPending || game.phase !== 'alliance' || !!cur.ally || gameEnded;
+  document.getElementById('btnBetray').disabled   = game.rolled || hasPending || game.phase !== 'alliance' || !cur.ally || cur.betrayals >= cur.maxBetrayals || gameEnded;
 
   renderKingdoms();
 }
